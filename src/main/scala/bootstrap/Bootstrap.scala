@@ -9,9 +9,15 @@ import scala.collection.JavaConverters._
 import scala.collection.concurrent.{Map => ConcurrentMap}
 
 object Bootstrap {
-    var nodes: ConcurrentMap[Integer, Connection] = new ConcurrentHashMap[Integer, Connection]().asScala
+    val nodes: ConcurrentMap[Integer, Connection] = new ConcurrentHashMap[Integer, Connection]().asScala
 
-    def startServer(): Unit = new Bootstrap(Constants.BOOTSTRAP_LISTENER_PORT).run()
+    val reportLock: Object = new Object
+
+    def startServer(): Unit = new Thread(new Bootstrap(Constants.BOOTSTRAP_LISTENER_PORT)).start()
+
+    def addNode(node: Connection): Unit = {
+        this.nodes(node.id) = node
+    }
 }
 
 class Bootstrap(port: Int) extends Runnable {
@@ -21,8 +27,7 @@ class Bootstrap(port: Int) extends Runnable {
         while (true) {
             // This blocks until a connection comes in
             val socket = serverSocket.accept()
-            // Accept incoming thread in a new Thread
-            new Thread(new BootstrapHandler(socket)).start()
+            new BootstrapHandler(socket).startHandler()
         }
     }
 }
